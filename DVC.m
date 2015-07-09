@@ -34,18 +34,30 @@ u123 = zeros(mSize_,3);
 cc = zeros(mSize_,1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+try
 wb = findall(0,'Tag','TMWWaitbar'); wb = wb(1);
-
 waitbar(1/7,wb,'Estimating Displacements (Time Remaining: )');
+catch
+end
+
+% % Preseparate the subsets for parfor
+% A0 = cell(mSize_,1); B0 = cell(mSize_,1);
+% for k = 1:mSize_
+%     A0{k} = I{1}(m{1}(k,:),m{2}(k,:),m{3}(k,:));
+%     B0{k} = I{2}(m{1}(k,:),m{2}(k,:),m{3}(k,:));
+% end
 
 for k = 1:mSize_
-    
     
     tStart = tic; % begin timer
     %--------------------------------------------------------------------------
     % grab the moving subset from the images
+%     A = A0{k};
+%     B = B0{k};
     A = I{1}(m{1}(k,:),m{2}(k,:),m{3}(k,:));
     B = I{2}(m{1}(k,:),m{2}(k,:),m{3}(k,:));
+    
+    % GPU compatible START ---
     
     % multiply by the modular transfer function to alter frequency content
     A = MTF.*A; B = MTF.*B;
@@ -59,6 +71,13 @@ for k = 1:mSize_
     % compute voxel resolution displacements
     [u1, u2, u3] = ind2sub(sSize,maxIdx);
     
+    % GPU compatible END ---
+    
+    % pad the array for the case when the peak is at the edge of the
+    % neighborhood
+    A = padarray(A, [1,1,1], 'symmetric');
+    u1 = u1 + 1; u2 = u2 + 1; u3 = u3 + 1;
+    
     % gather the 3x3x3 voxel neighborhood around the peak
     xCorrPeak = reshape(A(u1 + (-1:1), u2 + (-1:1), u3 + (-1:1)),27,1);
     
@@ -67,30 +86,26 @@ for k = 1:mSize_
     u123(k,:) = [u1 u2 u3] + du123' - (sSize/2) - 1;
     %--------------------------------------------------------------------------
     
-    % waitbar calculations (update only every 100 iterations)
-    if rem(k,100) == 0
-        tRemaining = (toc(tStart)*(mSize_ - k)); % Time remaining for waitbar
-        waitbar(1/7*(k/mSize_ + 1),wb,['Estimating Displacements (Time Remaining: ', datestr(datenum(0,0,0,0,0,tRemaining),'MM:SS'),')'])
+    %waitbar calculations (update only every 100 iterations)
+    try
+        if rem(k,100) == 0
+            tRemaining = (toc(tStart)*(mSize_ - k)); % Time remaining for waitbar
+            waitbar(1/7*(k/mSize_ + 1),wb,['Estimating Displacements (Time Remaining: ', datestr(datenum(0,0,0,0,0,tRemaining),'MM:SS'),')'])
+        end
+    catch
     end
-    
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Reshape displacements and set bad correlations to zero
-waitbar(2/7,wb,'Removing Bad Correlations')
+try waitbar(2/7,wb,'Removing Bad Correlations'); catch, end
 
 cc = reshape(double(cc),mSize);
-% cc = permute(cc,[2 1 3]);
+
 [cc, ccMask] = removeBadCorrelations(I,cc,ccThreshold);
 
-% u = cell(1,3);
-% for i = 1:3
-%     u{i} = reshape(double(u123(:,i)),mSize).*ccMask;
-%     u{i} = permute(u{i},[2 1 3]);
-% end
 u{1} = reshape(double(u123(:,2)),mSize).*ccMask;
 u{2} = reshape(double(u123(:,1)),mSize).*ccMask;
 u{3} = reshape(double(u123(:,3)),mSize).*ccMask;
-
 end
 
 %% ========================================================================
@@ -114,7 +129,6 @@ sizeV = size(I{1});
 idx = cell(1,3);
 for i = 1:3, idx{i} = (1+padSize(i)) : sSpacing(i) : (sizeV(i)-sSize(i)-padSize(i)+1); end
 [m{1},m{2},m{3}] = ndgrid(idx{:});
-
 
 % sSize = [sSize(2) sSize(1) sSize(3)];
 mSize = size(m{1});
@@ -157,6 +171,8 @@ end
 %% ========================================================================
 function A = xCorr3(A,B,sSize)
 % performs fft based cross correlation of A and B (see equation 2)
+% TODO: Run all these functions on the GPU. They all have MATLAB Built-in
+% counterparts.
 
 A = fftn(A,sSize);
 B = fftn(B,sSize);

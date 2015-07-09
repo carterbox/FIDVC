@@ -34,11 +34,11 @@ function u = filterDisplacements(u0,filterSize,z)
 % 
 
 % Parse inputs and set defaults
-if nargin < 3,  z = 0.0075; end
+if nargin < 3,  z = 0.0075; end % Optimal Damping between z = 0.01 and 0.001 according to Bar-Kochba et al.
 if ~iscell(u0), u0 = {u0}; end
 u = cell(size(u0));
 
-if z == 0,
+if z == 0 || sum(sum(filterSize)) <= 3 % Filter size of less than 1^3 returns NaNs from generateFilter
     u = cellfun(@double, u0, 'UniformOutput',0); % no filter
 else
     rf = generateFilter(filterSize,z);
@@ -69,5 +69,6 @@ i{3} = (m{3} > m{2} & m{3} > m{1});
 rf0 = f1.*i{1}+f2.*i{2}+f3.*i{3};
 
 rf = rf0/sum(rf0(:));
+assert(sum(sum(sum(isnan(rf)))) == 0); % Make sure that the filter exists.
 
 end

@@ -37,11 +37,10 @@ function [u, cc, dm] = IDVC(varargin)
 % Experimental Mechanics. doi: 10.1007/s11340-014-9874-2
 
 
-wb = waitbar(0,'Parsing Inputs','Name','Running IDVC');
-
+try wb = waitbar(0,'Parsing Inputs','Name','Running IDVC'); catch, end
 % PRESET CONSTANTS
-maxIterations = 20; % maximum number of iterations
-dm = 8; % desired output mesh spacing
+kMAXITERATIONS = 10; % maximum number of iterations
+dm = 32; % desired output mesh spacing
 convergenceCrit = [0.25, 0.5, 0.0625]; % convergence criteria
 ccThreshold = 1e-4; % bad cross-correlation threshold
 
@@ -51,11 +50,14 @@ ccThreshold = 1e-4; % bad cross-correlation threshold
 i = 2; converged01 = 0; SSE = []; I = I0;
 
 t0 = tic;
-while ~converged01 && i - 1 < maxIterations
+while ~converged01 && i - 1 < kMAXITERATIONS
     ti = tic;
     
-    set(wb,'name',['Running IDVC (Iteration ',num2str(i-1),')']);
-    waitbar(0/7,wb,'Checking Convergence');
+    try
+        set(wb,'name',['Running IDVC (Iteration ',num2str(i-1),')']);
+        waitbar(0/7,wb,'Checking Convergence');
+    catch
+    end
     % Check for convergence
      [converged01, SSE(i-1) , sSize(i,:), sSpacing(i,:)] = checkConvergenceSSD(I,SSE,sSize,sSpacing,convergenceCrit);
 
@@ -66,22 +68,24 @@ while ~converged01 && i - 1 < maxIterations
         [du, cc] = DVC(I,sSize(i,:),sSpacing(i,:),DVCPadSize,ccThreshold);
         
         % add the displacements from previous iteration to current
-        waitbar(3/7,wb,'Adding displacements from previous iteration');
+        try waitbar(3/7,wb,'Adding displacements from previous iteration'); catch, end
         [u, ~, cc] = addDisplacements(u,du,cc,m,dm);
         
         % filter the  displacements using a predictor filter
-        waitbar(4/7,wb,'Filtering Displacements');
-        u = filterDisplacements(u,sSize(i,:)/dm);
+        try waitbar(4/7,wb,'Filtering Displacements'); catch, end
+        u = filterDisplacements(u,sSize(i,:)/dm); %TODO figure out why filter size 1 makes all NaNs
         
         % remove outliers in displacement field
-        waitbar(5/7,wb,'Removing Outliers');
+        try waitbar(5/7,wb,'Removing Outliers'); catch, end
         u = removeOutliers(u);
 
         % mesh and pad images based on new subset size and spacing
         [I, m] = parseImages(I0,sSize(i,:),sSpacing(i,:));
         
+      %  save( sprintf('u%i.mat',i), 'u' );
+        
         % map volumes based on displacment field
-        waitbar(6/7,wb,'Warping Images');
+        try waitbar(6/7,wb,'Warping Images'); catch, end
         I = volumeMapping(I,m,u);
         
         disp(['Elapsed time (iteration ',num2str(i-1),'): ',num2str(toc(ti))]);
@@ -91,8 +95,8 @@ while ~converged01 && i - 1 < maxIterations
 end
 
 [u,cc] = parseOutputs(u,cc,dm,padSize);
-
-disp(['Convergence at iteration ',num2str(i)]);
+try close(wb); catch, end
+disp(['Convergence at iteration ',num2str(i-2)]); %convergence at i-2 because if it is converged before we run DVC, then i = 2
 disp(['Title time: ',num2str(toc(t0))]);
 end
 
@@ -100,14 +104,15 @@ end
 
 %% ========================================================================
 function varargout = parseImages(varargin)
-% pads images and creates meshgrid
+% Pads images and creates meshgrid.
 
 I{1} = single(varargin{1}{1});
 I{2} = single(varargin{1}{2});
 sSize = varargin{2};
 sSpacing = varargin{3};
 
-
+% Padding in order to evaluate correlations at edges with half the
+% interrogation window on each side.
 prePad = sSize/2;
 postPad = sSize/2;
 
@@ -117,7 +122,6 @@ I{1} = padarray(I{1},postPad,0,'post');
 
 I{2} = padarray(I{2},prePad,0,'pre');
 I{2} = padarray(I{2},postPad,0,'post');
-
 
 idx = cell(1,3);
 for i = 1:3, idx{i} = (1:sSpacing(i):(sizeI(i) + 1)) + sSize(i)/2; end
@@ -131,7 +135,7 @@ end
 
 %% ========================================================================
 function varargout = parseInputs(varargin)
-% parses inputs and pads images so that there is an divisable meshgrid number.
+% Parses inputs and pads images so that there is an divisable meshgrid number.
 
 I0{1} = single(varargin{1}{1});
 I0{2} = single(varargin{1}{2});
@@ -140,15 +144,18 @@ I0{2} = single(varargin{1}{2});
 % I0{2} = permute(I0{2},[2 1 3]);
 
 sSize = varargin{2}; 
-sSize = [sSize(2), sSize(1), sSize(3)];
+sSize = [sSize(2), sSize(1), sSize(3)]; % Why flip the first two indicies?
 
-sSpacing = sSize/2; 
+sSpacing = sSize/2;
 u0 = varargin{3};
 
 DVCPadSize = sSpacing/2;
 
 sizeI0 = size(I0{1});
+% Determine the size such that the interrogation window evenly divides the
+% image. sizeI is always bigger than sizeI0.
 sizeI = ceil(sizeI0./sSpacing).*sSpacing;
+
 prePad = ceil((sizeI - sizeI0)/2);
 postPad = floor((sizeI - sizeI0)/2);
 

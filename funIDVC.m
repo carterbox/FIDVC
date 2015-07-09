@@ -7,7 +7,7 @@ function [u, cc, dm] = funIDVC(varargin)
 %   filename: string for the filename prefix for the volumetric images in 
 %             the current directory.  
 %             Input options:
-%             --- If image is not within a cell) ---
+%             --- If image is not within a cell ---
 %             1) 'filename*.mat' or 'filename*' 
 % 
 %             --- If image is within a cell that contains multichannels ---
@@ -55,9 +55,13 @@ I{1} = loadFile(fileInfo,1);
 
 %% ---- Opening and Reading Subsequent Images ---
 numImages = length(fileInfo.filename);
+display(sprintf('The number of images is %i', numImages));
+
 u = cell(numImages-1,1); cc = cell(numImages-1,1);
+
+tStart = tic;
 for i = 2:numImages % Reads Volumes Starting on the Second Volumes
-    tStart = tic;
+   
     I{2} = loadFile(fileInfo,i);
     
     %Start DVC
@@ -68,12 +72,13 @@ for i = 2:numImages % Reads Volumes Starting on the Second Volumes
     u{i-1}{1} = u_{1};  u{i-1}{2} = u_{2};  u{i-1}{3} = u_{3}; u{i-1}{4} = u_{4};
     
     if incORcum == 1, I{1} = I{2};  u_ = num2cell(zeros(1,3)); end
-    disp(['Elapsed Time for all iterations: ',num2str(toc(tStart))]);
+    
 end
-
+disp(['Elapsed Time for all iterations: ' num2str(toc(tStart))]);
 end
 
 function I = loadFile(fileInfo,idx)
+% Returns the data array from the file at idx.
 I = load(fileInfo.filename{idx});
 fieldName = fieldnames(I);
 I = getfield(I,fieldName{1});
@@ -87,7 +92,9 @@ end
 
 function varargout = parseInputs(varargin)
 %  = parseInputs(filename, sSize, incORcum)
-
+% Parses input data into proper formats and check for validity of inputs.
+% Returns fileInfo, interrogation window dimensions, incremental or
+% cumulative boolean, and inital displacement guess array.
 
 % Parse filenames
 filename = varargin{1};
@@ -98,10 +105,11 @@ if iscell(filename)
     filename = filename{1};
 end
 
-
 [~,filename,~] = fileparts(filename);
 filename = dir([filename,'.mat']);
 fileInfo.filename = {filename.name};
+
+disp(fileInfo);
 
 if isempty(fileInfo), error('File name doesn''t exist'); end
 
@@ -114,11 +122,11 @@ elseif numel(sSize) ~=3,
 end
 
 % Ensure range of subset size
-if min(sSize) < 32 || max(sSize > 128)
+if min(sSize) < 32 || max(sSize > 256)
    error('Subset size must be within 32 and 128 pixels'); 
 end
 
-% Ensure even subset size
+% % Ensure even subset size
 % if sum(mod(sSize,4)) > 0
 %     error('Subset size must be even');
 % end
@@ -131,12 +139,12 @@ end
 incORcum  = varargin{3};
 
 switch lower(incORcum)
-    case 'cum', incORcum = 'cumulative';
-    case 'inc', incORcum = 'incremental';
-    case 'c', incORcum = 'cumulative';
-    case 'i', incORcum = 'incremental';
-    case 'incremental', incORcum = 'incremental';
-    case 'cumulative', incORcum = 'incremental';
+    case 'cum', incORcum = 0;
+    case 'inc', incORcum = 1;
+    case 'c', incORcum = 0;
+    case 'i', incORcum = 1;
+    case 'cumulative', incORcum = 0;
+    case 'incremental', incORcum = 1;
     otherwise, error('Run method must be incremental or cumulative');
 end
 
@@ -147,6 +155,6 @@ u0 = num2cell(zeros(1,3));
 varargout{      1} = fileInfo;
 varargout{end + 1} = sSize;
 varargout{end + 1} = incORcum;
-varargout{end+1} = u0;
+varargout{end + 1} = u0;
 
 end

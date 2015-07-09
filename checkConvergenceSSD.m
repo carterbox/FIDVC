@@ -12,14 +12,14 @@ function [converged01, SSE1 , sSize1, sSpacing1] = checkConvergenceSSD(I,SSE,sSi
 %   sSize: interrogation window (subset) size for all iterations
 %   sSpacing: interrogation window (subset) spacing for all iterations
 %   convergenceCrit: Array containing convergence criteria for stopping the
-%                    iterations.  [local, global] where local defines when
+%                    iterations.  [local, local, global] where local defines when
 %                    to refine the sSize and/or sSpacing and global defines
 %                    when to stop the iterations without refinement.
 %
 % OUTPUTS
 % -------------------------------------------------------------------------
 %   converged01: boolean, 1 = met convergence criteria for stopping, 0 =
-%                vice versa
+%                has not met convergence criteria
 %   SSE1: SSE for current iteration
 %   sSize1: interrogation window (subset) size for the current iteration
 %   sSpacing1: interrogation window (subset) spacing for the current 
@@ -64,14 +64,11 @@ if iteration > 1 % skip before first displacement estimation
     sSize1(sSize1 < 32) = 32; 
     
     % window spacing refinement. Only do if the sSpacing > 8 voxels
-    if (sSpacing0 > 8), sSpacing1 = sSize1/2;
-             
-
-    end 
+    if (sSpacing0 > 8), sSpacing1 = sSize1/2; end 
     
     if prod(single(sSpacing1 == 16)) % condition if spacing = 16
-      
-        idx = (find(prod(single(sSpacing == 16),2))-1):iteration;
+
+        idx = find(prod(single(sSpacing == 16),2)):iteration;
         if length(idx) > 2
             dSSE = diff(SSE(idx)); % calculate difference
             dSSE = dSSE/dSSE(1); % normalize difference
@@ -80,13 +77,12 @@ if iteration > 1 % skip before first displacement estimation
             % to the minimum value, 8 voxels.
             if dSSE(end) <= convergenceCrit(1)
                 sSize1 = sSize0; sSpacing1 = [8 8 8]; 
-                
             end
         end
         
     % condition if spacing is the minimum, 8 voxels
     elseif  prod(single(sSpacing1 == 8))
-        idx = (find(prod(single(sSpacing == 8),2))-1):iteration;
+        idx = find(prod(single(sSpacing == 8),2)):iteration;
         
         if length(idx) > 2
             dSSE = diff(SSE(idx));

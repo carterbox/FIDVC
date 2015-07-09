@@ -52,7 +52,9 @@ F = griddedInterpolant(m0_{1}, m0_{2}, m0_{3}, cc0, 'linear');
 cc = F(m{1},m{2},m{3});
 
 if  sum(cellfun(@numel, u0)) == 3, u = du; % on first iteration u = du
-else u = cellfun(@plus,u0,du,'UniformOutput', 0); % else u^(k) = sum(u^(k-1)) + du (see eq. 7)
+else
+    if length(u0) == 4, du{1,4} = 0; end %they need to be the same size to add
+    u = cellfun(@plus,u0,du,'UniformOutput', 0); % else u^(k) = sum(u^(k-1)) + du (see eq. 7)
 end
 
 end
