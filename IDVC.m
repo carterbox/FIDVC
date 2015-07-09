@@ -40,7 +40,7 @@ function [u, cc, dm] = IDVC(varargin)
 try wb = waitbar(0,'Parsing Inputs','Name','Running IDVC'); catch, end
 % PRESET CONSTANTS
 kMAXITERATIONS = 10; % maximum number of iterations
-dm = 32; % desired output mesh spacing
+dm = 8; % desired output mesh spacing
 convergenceCrit = [0.25, 0.5, 0.0625]; % convergence criteria
 ccThreshold = 1e-4; % bad cross-correlation threshold
 

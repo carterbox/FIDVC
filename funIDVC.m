@@ -71,7 +71,7 @@ for i = 2:numImages % Reads Volumes Starting on the Second Volumes
     % Saving iterations of the DVC
     u{i-1}{1} = u_{1};  u{i-1}{2} = u_{2};  u{i-1}{3} = u_{3}; u{i-1}{4} = u_{4};
     
-    if incORcum == 1, I{1} = I{2};  u_ = num2cell(zeros(1,3)); end
+    if incORcum == true, I{1} = I{2};  u_ = num2cell(zeros(1,3)); end
     
 end
 disp(['Elapsed Time for all iterations: ' num2str(toc(tStart))]);
@@ -122,7 +122,7 @@ elseif numel(sSize) ~=3,
 end
 
 % Ensure range of subset size
-if min(sSize) < 32 || max(sSize > 256)
+if min(sSize) < 32 || max(sSize > 128)
    error('Subset size must be within 32 and 128 pixels'); 
 end
 
@@ -139,12 +139,12 @@ end
 incORcum  = varargin{3};
 
 switch lower(incORcum)
-    case 'cum', incORcum = 0;
-    case 'inc', incORcum = 1;
-    case 'c', incORcum = 0;
-    case 'i', incORcum = 1;
-    case 'cumulative', incORcum = 0;
-    case 'incremental', incORcum = 1;
+    case 'cum', incORcum = false;
+    case 'inc', incORcum = true;
+    case 'c', incORcum = false;
+    case 'i', incORcum = true;
+    case 'cumulative', incORcum = false;
+    case 'incremental', incORcum = true;
     otherwise, error('Run method must be incremental or cumulative');
 end
 
