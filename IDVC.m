@@ -36,8 +36,9 @@ function [u, cc, dm] = IDVC(varargin)
 % iterative digital volume correlation algorithm for large deformations. 
 % Experimental Mechanics. doi: 10.1007/s11340-014-9874-2
 
+display = usejava('awt'); % Checks for available display.
+if display, wb = waitbar(0,'Parsing Inputs','Name','Running IDVC'); end
 
-try wb = waitbar(0,'Parsing Inputs','Name','Running IDVC'); catch, end
 % PRESET CONSTANTS
 kMAXITERATIONS = 10; % maximum number of iterations
 dm = 8; % desired output mesh spacing
@@ -47,16 +48,15 @@ ccThreshold = 1e-4; % bad cross-correlation threshold
 [I0, sSize, sSpacing, padSize, DVCPadSize, u] = parseInputs(varargin{:});
 
 % START ITERATING
-i = 2; converged01 = 0; SSE = []; I = I0;
+i = 2; converged01 = false; SSE = []; I = I0;
 
 t0 = tic;
 while ~converged01 && i - 1 < kMAXITERATIONS
     ti = tic;
     
-    try
+    if display
         set(wb,'name',['Running IDVC (Iteration ',num2str(i-1),')']);
         waitbar(0/7,wb,'Checking Convergence');
-    catch
     end
     % Check for convergence
      [converged01, SSE(i-1) , sSize(i,:), sSpacing(i,:)] = checkConvergenceSSD(I,SSE,sSize,sSpacing,convergenceCrit);
@@ -68,15 +68,15 @@ while ~converged01 && i - 1 < kMAXITERATIONS
         [du, cc] = DVC(I,sSize(i,:),sSpacing(i,:),DVCPadSize,ccThreshold);
         
         % add the displacements from previous iteration to current
-        try waitbar(3/7,wb,'Adding displacements from previous iteration'); catch, end
+        if display, waitbar(3/7,wb,'Adding displacements from previous iteration'); end
         [u, ~, cc] = addDisplacements(u,du,cc,m,dm);
         
         % filter the  displacements using a predictor filter
-        try waitbar(4/7,wb,'Filtering Displacements'); catch, end
+        if display, waitbar(4/7,wb,'Filtering Displacements'); end
         u = filterDisplacements(u,sSize(i,:)/dm); %TODO figure out why filter size 1 makes all NaNs
         
         % remove outliers in displacement field
-        try waitbar(5/7,wb,'Removing Outliers'); catch, end
+        if display, waitbar(5/7,wb,'Removing Outliers'); end
         u = removeOutliers(u);
 
         % mesh and pad images based on new subset size and spacing
@@ -85,7 +85,7 @@ while ~converged01 && i - 1 < kMAXITERATIONS
       %  save( sprintf('u%i.mat',i), 'u' );
         
         % map volumes based on displacment field
-        try waitbar(6/7,wb,'Warping Images'); catch, end
+        if display, waitbar(6/7,wb,'Warping Images'); end
         I = volumeMapping(I,m,u);
         
         disp(['Elapsed time (iteration ',num2str(i-1),'): ',num2str(toc(ti))]);
@@ -95,8 +95,8 @@ while ~converged01 && i - 1 < kMAXITERATIONS
 end
 
 [u,cc] = parseOutputs(u,cc,dm,padSize);
-try close(wb); catch, end
-disp(['Convergence at iteration ',num2str(i-2)]); %convergence at i-2 because if it is converged before we run DVC, then i = 2
+if display, close(wb); end
+disp(['Convergence at iteration ',num2str(i-2)]);
 disp(['Title time: ',num2str(toc(t0))]);
 end
 
