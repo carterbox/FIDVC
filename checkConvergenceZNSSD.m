@@ -9,8 +9,8 @@ function [converged01, SSE1 , sSize1, sSpacing1] = checkConvergenceZNSSD(I,SSE,s
 % -------------------------------------------------------------------------
 %   I: cell containing the undeformed, I{1}, and deformed, I{2} 3-D images
 %   SSE: array of SSD values for all iterations
-%   sSize: interrogation window (subset) size for all iterations
-%   sSpacing: interrogation window (subset) spacing for all iterations
+%   sSize: 1x3 int vector, interrogation window (subset) size for all iterations
+%   sSpacing: 1x3 int vector, interrogation window (subset) spacing for all iterations
 %   convergenceCrit: Array containing convergence criteria for stopping the
 %                    iterations.  [local, local, global] where local defines when
 %                    to refine the sSize and/or sSpacing and global defines
@@ -18,11 +18,11 @@ function [converged01, SSE1 , sSize1, sSpacing1] = checkConvergenceZNSSD(I,SSE,s
 %
 % OUTPUTS
 % -------------------------------------------------------------------------
-%   converged01: boolean, 1 = met convergence criteria for stopping, 0 =
-%                has not met convergence criteria
+%   converged01: boolean, true = met convergence criteria for stopping
+%                         false = has not met convergence criteria
 %   SSE1: SSE for current iteration
-%   sSize1: 3x1 vector, interrogation window (subset) size for the current iteration
-%   sSpacing1: 3x1 vector, interrogation window (subset) spacing for the current 
+%   sSize1: 1x3 int vector, interrogation window (subset) size for the current iteration
+%   sSpacing1: 1x3 int vector, interrogation window (subset) spacing for the current 
 %              iteration
 %   
 % NOTES
@@ -51,58 +51,62 @@ SSE1 = sum(((I{1}-mu(1))./sig(1) - (I{2}-mu(2))./sig(2)).^2);
 
 SSE(end + 1) = SSE1;
 
-% set default values
+% Set default values.
 sSize0 = sSize(end,:); sSpacing0 = sSpacing(end,:);
 sSize1 = sSize(end,:); sSpacing1 = sSpacing(end,:);
 iteration = size(sSize,1);
 dSSE = nan;
-converged01 = 0;
+converged01 = false;
 
-
-if iteration > 1 % skip before first displacement estimation
-    sSize1 = sSize0/2; % window size refinement
+% Local threshold criteria
+if iteration > 1 % Skip before first displacement estimation.
+    sSize1 = sSize0/2; % window size refinement (Should be int division.) 
     
-    % ensure that all subset sizes are at minimum 32 voxels in length
+    % Ensure that all subset sizes are at minimum 32 voxels in length.
     sSize1(sSize1 < 32) = 32; 
     
-    % window spacing refinement. Only do if the sSpacing > 8 voxels
+    % Window spacing refinement. Only do if the sSpacing > 8 voxels
     if (sSpacing0 > 8), sSpacing1 = sSize1/2; end 
     
-    if prod(single(sSpacing1 == 16)) % condition if spacing = 16
+    % Condition: all spacings = 16
+    if prod(single(sSpacing1 == 16),2)
+       % Convert to single for backwards compatibility.
 
-        idx = find(prod(single(sSpacing == 16),2)):iteration;
-        if length(idx) > 2
-            dSSE = diff(SSE(idx)); % calculate difference
+        %idx = find(prod(single(sSpacing == 16),2)):iteration;
+        %if length(idx) > 2
+        % Redundant condition: every sSpacing = 16 && iteration > 2
+        % because of if statement above.
+        
+        if iteration > 2
+            dSSE = diff(SSE(1:iteration)); % calculate difference
             dSSE = dSSE/dSSE(1); % normalize difference
              
-            % if dSSE meets first convergence criteria then refine spacing
-            % to the minimum value, 8 voxels.
+            % If dSSE meets first convergence criteria then refine spacing
+            % to the minimum value, 8 voxels, and unrefine window size. 
             if dSSE(end) <= convergenceCrit(1)
                 sSize1 = sSize0; sSpacing1 = [8 8 8]; 
             end
         end
         
-    % condition if spacing is the minimum, 8 voxels
+    % Condition: all spacings are the minimum 8 voxels
     elseif  prod(single(sSpacing1 == 8))
-        idx = find(prod(single(sSpacing == 8),2)):iteration;
+        %idx = find(prod(single(sSpacing == 8),2)):iteration;
         
-        if length(idx) > 2
-            dSSE = diff(SSE(idx));
+        if iteration > 2
+            dSSE = diff(SSE(1:iteration));
             dSSE = dSSE/dSSE(1);
             
-            % if dSSE meets first convergence criteria and spacing is the
-            % mimumum then convergence has been met and stop all
-            % iterations.
+            % If dSSE meets first convergence criteria and spacing is the
+            % mimumum, then convergence has been met. Stop all iterations.
             if dSSE(end) <= convergenceCrit(2) 
                 sSize1 = sSize0; sSpacing1 = sSpacing0;
-                converged01 = 1;
+                converged01 = true;
             end
         end
     end
-    
 end
 
-% global threshold criteria
-if SSE(end)/SSE(1) < convergenceCrit(3), converged01 = 1; end
+% Global threshold criteria
+if SSE(end)/SSE(1) < convergenceCrit(3), converged01 = true; end
 
 end
