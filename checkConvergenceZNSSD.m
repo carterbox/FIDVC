@@ -21,9 +21,10 @@ function [converged01, SSE1 , sSize1, sSpacing1] = checkConvergenceZNSSD(I,SSE,s
 %   converged01: boolean, true = met convergence criteria for stopping
 %                         false = has not met convergence criteria
 %   SSE1: SSE for current iteration
-%   sSize1: 1x3 int vector, interrogation window (subset) size for the current iteration
-%   sSpacing1: 1x3 int vector, interrogation window (subset) spacing for the current 
-%              iteration
+%   sSize1: 1x3 int vector, interrogation window (subset) size for the 
+%   current iteration
+%   sSpacing1: 1x3 int vector, interrogation window (subset) spacing for 
+%   the current iteration
 %   
 % NOTES
 % -------------------------------------------------------------------------

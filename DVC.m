@@ -33,11 +33,13 @@ mSize_ = prod(mSize);
 u123 = zeros(mSize_,3);
 cc = zeros(mSize_,1);
 
+% Check for available display.
+display = usejava('awt');
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-try
-wb = findall(0,'Tag','TMWWaitbar'); wb = wb(1);
-waitbar(1/7,wb,'Estimating Displacements (Time Remaining: )');
-catch
+if display
+    wb = findall(0,'Tag','TMWWaitbar'); wb = wb(1);
+    waitbar(1/7,wb,'Estimating Displacements (Time Remaining: )');
 end
 
 % % Preseparate the subsets for parfor
@@ -86,18 +88,17 @@ for k = 1:mSize_
     u123(k,:) = [u1 u2 u3] + du123' - (sSize/2) - 1;
     %--------------------------------------------------------------------------
     
-    %waitbar calculations (update only every 100 iterations)
-    try
+    % waitbar calculations (update only every 100 iterations)
+    if display
         if rem(k,100) == 0
             tRemaining = (toc(tStart)*(mSize_ - k)); % Time remaining for waitbar
             waitbar(1/7*(k/mSize_ + 1),wb,['Estimating Displacements (Time Remaining: ', datestr(datenum(0,0,0,0,0,tRemaining),'MM:SS'),')'])
         end
-    catch
     end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Reshape displacements and set bad correlations to zero
-try waitbar(2/7,wb,'Removing Bad Correlations'); catch, end
+if display, waitbar(2/7,wb,'Removing Bad Correlations'); end
 
 cc = reshape(double(cc),mSize);
 
