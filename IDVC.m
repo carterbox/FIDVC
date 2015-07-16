@@ -39,7 +39,7 @@ function [u, cc, dm] = IDVC(varargin)
 
 try wb = waitbar(0,'Parsing Inputs','Name','Running IDVC'); catch, end
 % PRESET CONSTANTS
-kMAXITERATIONS = 10; % maximum number of iterations
+kMAXITERATIONS = 50; % maximum number of iterations
 dm = 8; % desired output mesh spacing
 convergenceCrit = [0.25, 0.5, 0.0625]; % convergence criteria
 ccThreshold = 1e-4; % bad cross-correlation threshold
@@ -88,8 +88,10 @@ while ~converged01 && i - 1 < kMAXITERATIONS
         try waitbar(6/7,wb,'Warping Images'); catch, end
         I = volumeMapping(I,m,u);
         
+        save(sprintf('u%2i.mat',i), 'u');
         disp(['Elapsed time (iteration ',num2str(i-1),'): ',num2str(toc(ti))]);
         i = i + 1;
+        
     end
     
 end
