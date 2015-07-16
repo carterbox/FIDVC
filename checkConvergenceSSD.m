@@ -77,12 +77,7 @@ if iteration > 1 % Skip before first displacement estimation.
     % Condition: all spacings = 16
     if prod(single(sSpacing1 == 16),2)
        % Convert to single for backwards compatibility.
-
-        %idx = find(prod(single(sSpacing == 16),2)):iteration;
-        %if length(idx) > 2
-        % Redundant condition: every sSpacing = 16 && iteration > 2
-        % because of if statement above.
-        
+       
         if iteration > 2
             dSSE = diff(SSE(1:iteration)); % calculate difference
             dSSE = dSSE/dSSE(1); % normalize difference
