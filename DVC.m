@@ -87,7 +87,9 @@ parfor k = 1:mSize_
     xCorrPeak = reshape(A(u1 + (-1:1), u2 + (-1:1), u3 + (-1:1)),27,1);
     
     % least squares fitting of the peak to calculate sub-voxel displacements
+    warning off;
     du123 = lsqPolyFit3(xCorrPeak, M{1}, M{2});
+    warning on;
     u123(k,:) = [u1 u2 u3] + du123' - (sSize/2) - 1;
     %--------------------------------------------------------------------------
     
