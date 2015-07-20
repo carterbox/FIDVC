@@ -122,7 +122,7 @@ elseif numel(sSize) ~=3,
 end
 
 % Ensure range of subset size
-if min(sSize) < 32 || max(sSize > 128)
+if min(sSize) < 32 || max(sSize > 256)
    error('Subset size must be within 32 and 128 pixels'); 
 end
 
