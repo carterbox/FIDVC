@@ -49,6 +49,7 @@ end
 %     B0{k} = I{2}(m{1}(k,:),m{2}(k,:),m{3}(k,:));
 % end
 
+display = display && isempty(gcp);
 parfor k = 1:mSize_
     
     tStart = tic; % begin timer
