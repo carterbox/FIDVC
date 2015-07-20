@@ -40,6 +40,8 @@ display = usejava('awt');
 if display
     wb = findall(0,'Tag','TMWWaitbar'); wb = wb(1);
     waitbar(1/7,wb,'Estimating Displacements (Time Remaining: )');
+else
+    wb = false;
 end
 
 % % Preseparate the subsets for parfor
