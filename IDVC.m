@@ -40,7 +40,7 @@ display = usejava('awt'); % Checks for available display.
 if display, wb = waitbar(0,'Parsing Inputs','Name','Running IDVC'); end
 
 % PRESET CONSTANTS
-kMAXITERATIONS = 20; % maximum number of iterations
+kMAXITERATIONS = 64; % maximum number of iterations
 dm = 8; % desired output mesh spacing
 convergenceCrit = [0.25, 0.5, 0.0625]; % convergence criteria
 ccThreshold = 1e-4; % bad cross-correlation threshold
